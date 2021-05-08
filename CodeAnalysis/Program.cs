@@ -16,12 +16,12 @@ namespace CodeAnalysis
 {
     class Program
     {
-        string pathSolution = @"D:\Darik\Диплом\AdoToEf\AdoToEf.sln";
+        string pathSolution = @"D:\Darik\Диплом\AdoTest\AdoTest.sln";
         string pathProject = @"D:\Darik\Диплом\AdoTest\AdoTest\AdoTest.csproj";
         string pathFile = @"D:\Darik\Диплом\AdoTest\AdoTest\Program.cs";
         static async Task Main(string[] args)
         {
-            object[] o = { @"D:\Darik\Диплом\EM6Test\EM6Test.sln"};
+            object[] o = { @"D:\Darik\Диплом\AdoTest\AdoTest.sln" };
             SplitTree a = new SplitTree(o);
             a.SplitSolution();
             Console.WriteLine("----------------");

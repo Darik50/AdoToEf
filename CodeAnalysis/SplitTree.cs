@@ -31,6 +31,7 @@ namespace CodeAnalysis
                 pathFile = arrPath[2].ToString();
             }
         }
+        //Метод который разбивает заданное решение на проекты
         public void SplitSolution()
         {
             var msWorkspace = MSBuildWorkspace.Create();
@@ -41,6 +42,7 @@ namespace CodeAnalysis
 
             SplitProject(projects);
         }
+        //Метод который разбивает заданный проект на файлы
         public void SplitProject()
         {
             var msWorkspace = MSBuildWorkspace.Create();
@@ -48,7 +50,10 @@ namespace CodeAnalysis
             var project = msWorkspace.OpenProjectAsync(pathProject).Result;
 
             var files = project.Documents;
+
+            SplitFiles(files);
         }
+        //Метод который разбивает заданные проекты на файлы
         public void SplitProject(IEnumerable<Microsoft.CodeAnalysis.Project> projects)
         { 
             foreach(var project in projects)
@@ -57,6 +62,7 @@ namespace CodeAnalysis
                 SplitFiles(files);
             }
         }
+        //Метод который разбивает заданный файл на методы
         public void SplitFiles()
         {
             string programText = File.ReadAllText(pathFile);
@@ -68,12 +74,12 @@ namespace CodeAnalysis
             .DescendantNodes()
             .OfType<MethodDeclarationSyntax>();  
         }
+        //Метод который разбивает заданные файлы на методы
         public void SplitFiles(IEnumerable<Microsoft.CodeAnalysis.Document> files)
         {
             foreach (var file in files)
             {
                 string programText = File.ReadAllText(file.FilePath);
-                Console.WriteLine(file.FilePath);
 
                 var tree = CSharpSyntaxTree.ParseText(programText);
 
@@ -81,6 +87,15 @@ namespace CodeAnalysis
                 .GetRoot()
                 .DescendantNodes()
                 .OfType<MethodDeclarationSyntax>();
+                foreach (var method in methods) 
+                {
+                    string pattern = @"(^[^{]+{)|(}$)";
+                    string target = " ";
+                    Regex regex = new Regex(pattern);
+                    string result = regex.Replace(method.ToString(), target);
+                    SearchSQL a = new SearchSQL();
+                    a.SearchInto(result);
+                }
             }
         }
 
