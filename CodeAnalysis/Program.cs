@@ -21,13 +21,8 @@ namespace CodeAnalysis
         string pathFile = @"D:\Darik\Диплом\AdoTest\AdoTest\Program.cs";
         static async Task Main(string[] args)
         {
-            object[] o = { @"D:\Darik\Диплом\AdoTest\AdoTest.sln" };
-            SplitTree a = new SplitTree(o);
-            a.SplitSolution();
-            Console.WriteLine("----------------");
-            a.SplitProject();
-            Console.WriteLine("----------------");
-            a.SplitFiles();
+            ChangeFile c = new ChangeFile("Solution", @"D:\Darik\Диплом\AdoTest\AdoTest.sln");
+            c.StartChange();
         }
         
     }
