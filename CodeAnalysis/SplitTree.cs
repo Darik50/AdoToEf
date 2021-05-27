@@ -13,7 +13,7 @@ using System.Threading.Tasks;
 namespace CodeAnalysis
 {
 
-    class SplitTree
+    public class SplitTree
     {
         static string pathSolution = @"D:\Darik\Диплом\AdoTest\AdoTest.sln";
         static string pathProject = @"D:\Darik\Диплом\AdoTest\AdoTest\AdoTest.csproj";

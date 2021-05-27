@@ -12,12 +12,12 @@ using System.Threading.Tasks;
 
 namespace CodeAnalysis
 {
-    class MethodStruct
+    public class MethodStruct
     {
-        public Solution solution;
-        public Project project;
-        public Document document;
-        public string documentPath;
-        public MethodDeclarationSyntax method;
+        public Solution solution = null;
+        public Project project = null;
+        public Document document = null;
+        public string documentPath = null;
+        public MethodDeclarationSyntax method = null;
     }
 }

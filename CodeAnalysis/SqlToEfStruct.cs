@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace CodeAnalysis
 {
-    class SqlToEfStruct
+    public class SqlToEfStruct
     {
         public string sqlQuery;
         public string EfBlock;

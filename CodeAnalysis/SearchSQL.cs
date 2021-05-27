@@ -7,19 +7,16 @@ using System.Threading.Tasks;
 
 namespace CodeAnalysis
 {
-    class SearchSQL
+    public class SearchSQL
     {
-        public void Search(string code)
+        public List<SqlToEfStruct> Search(string code)
         {
             List<SqlToEfStruct> arr = new List<SqlToEfStruct>();
             arr.AddRange(SearchInto(code));
-            SearchUpdate(code);
-            SearchDelete(code);
-            SearchSelect(code);
-            foreach (var i in arr)
-            {
-                Console.WriteLine(i.sqlQuery + "\n" + i.replaceLine + "\n" + i.EfBlock);                
-            }
+            arr.AddRange(SearchUpdate(code));
+            arr.AddRange(SearchDelete(code));
+            arr.AddRange(SearchSelect(code));
+            return arr;
         }
         //Поиск запроса INSERT INTO
         public List<SqlToEfStruct> SearchInto(string code)
@@ -39,8 +36,6 @@ namespace CodeAnalysis
         {
             SqlToEfStruct intoStruct = new SqlToEfStruct();
             intoStruct.replaceLine = sqlQuery;
-            Console.WriteLine("sql запрос");
-            Console.WriteLine(sqlQuery);
             string tableName = "";
             string[] columns = new string[0];
             string[] values = new string[0];
@@ -100,7 +95,6 @@ namespace CodeAnalysis
         //Создание аналога запроса INSERT INTO, с помощью EF
         SqlToEfStruct CreateInto(string tableName, string[] columns, string[] values, SqlToEfStruct intoStruct)
         {
-            Console.WriteLine("EF6");
             string EFBlock = "using (ApplicationContext db = new ApplicationContext())\n{\n\t";
 
             EFBlock += tableName + " str = new " + tableName + @"{ ";
@@ -125,26 +119,26 @@ namespace CodeAnalysis
             }
 
             EFBlock += "db.Test.Add(t1);\n\tdb.SaveChanges();\n}";
-            Console.WriteLine(EFBlock);
-            Console.WriteLine("----------------------");
             intoStruct.EfBlock = EFBlock;
             return intoStruct;
         }
         //update
-        public void SearchUpdate(string code)
+        public List<SqlToEfStruct> SearchUpdate(string code)
         {
             string pattern = @"[^;]+(?ixn)""UPDATE[^;]+";
             Regex regex = new Regex(pattern);
+            List<SqlToEfStruct> arr = new List<SqlToEfStruct>();
             foreach (Match match in Regex.Matches(code, pattern))
             {
-                SplitUpdate(match.Value);
+                arr.Add(SplitUpdate(match.Value));
             }
+            return arr;
         }
         //Разделяем на элементы запрос UPDATE
-        public void SplitUpdate(string sqlQuery)
+        public SqlToEfStruct SplitUpdate(string sqlQuery)
         {
-            Console.WriteLine("sql запрос");
-            Console.WriteLine(sqlQuery);
+            SqlToEfStruct updateStruct = new SqlToEfStruct();
+            updateStruct.replaceLine = sqlQuery;
             string tableName = "";
             List<string> columns = new List<string>();
             List<string> values = new List<string>();
@@ -159,6 +153,7 @@ namespace CodeAnalysis
             target = " ";
             regex = new Regex(pattern);
             sqlQuery = regex.Replace(sqlQuery, target);
+            updateStruct.sqlQuery = "UPDATE " + sqlQuery.Trim();
 
             //получаем имя таблицы
             pattern = @"(?ixn)^[ ]*[^ ]+";
@@ -207,18 +202,18 @@ namespace CodeAnalysis
             {
                 constrLine = sqlQuery;
             }
-            CreateUpdate(tableName, columns, values, constrLine);
+            updateStruct = CreateUpdate(tableName, columns, values, constrLine, updateStruct);
+            return updateStruct;
         }
 
-        void CreateUpdate(string tableName, List<string> columns, List<string> values, string constrLine)
+        SqlToEfStruct CreateUpdate(string tableName, List<string> columns, List<string> values, string constrLine, SqlToEfStruct updateStruct)
         {
-            Console.WriteLine("EF6");
-            string EMBlock = "using (ApplicationContext db = new ApplicationContext())\n{\n\t";
+            string EFBlock = "using (ApplicationContext db = new ApplicationContext())\n{\n\t";
 
-            EMBlock += "db." + tableName;
+            EFBlock += "db." + tableName;
             if (constrLine.Length > 0)
             {
-                EMBlock += ".Where(x => ";
+                EFBlock += ".Where(x => ";
                 Dictionary<string, string> replaceStr = new Dictionary<string, string>();
                 string[] constrns = constrLine.Split(new[] { " AND ", " OR " }, StringSplitOptions.None);
                 foreach (var i in constrns)
@@ -240,34 +235,36 @@ namespace CodeAnalysis
                     constrLine = constrLine.Replace(i.Key, i.Value);
                 }
                 constrLine = constrLine.Replace("=", "==").Replace("AND", "&&").Replace("OR", "||");
-                EMBlock += constrLine + ")";
+                EFBlock += constrLine + ")";
             }
-            EMBlock += ".ToList().ForEach(a =>\n\t{\n";
+            EFBlock += ".ToList().ForEach(a =>\n\t{\n";
 
             for(int i = 0; i < values.Count; i++)
             {
-                EMBlock += "\t\ta." + columns[i].Replace(" ", "") + " = " + values[i].Replace(@"'", @"""") + ";\n";
+                EFBlock += "\t\ta." + columns[i].Replace(" ", "") + " = " + values[i].Replace(@"'", @"""") + ";\n";
             }
-            EMBlock += "\t});\n\tdb.SaveChanges();\n}";
-            Console.WriteLine(EMBlock);
-            Console.WriteLine("----------------------");
+            EFBlock += "\t});\n\tdb.SaveChanges();\n}";
+            updateStruct.EfBlock = EFBlock;
+            return updateStruct;
         }
 
         //delete
-        public void SearchDelete(string code)
+        public List<SqlToEfStruct> SearchDelete(string code)
         {
             string pattern = @"[^;]+(?ixn)""DELETE[ ]+((FROM[ ])|())[^;]+";
             Regex regex = new Regex(pattern);
+            List<SqlToEfStruct> arr = new List<SqlToEfStruct>();
             foreach (Match match in Regex.Matches(code, pattern))
             {
-                SplitDelete(match.Value);
+                arr.Add(SplitDelete(match.Value));
             }
+            return arr;
         }
         //Разделяем на элементы запрос DELETE
-        public void SplitDelete(string sqlQuery)
+        public SqlToEfStruct SplitDelete(string sqlQuery)
         {
-            Console.WriteLine("sql запрос");
-            Console.WriteLine(sqlQuery);
+            SqlToEfStruct deleteStruct = new SqlToEfStruct();
+            deleteStruct.replaceLine = sqlQuery;
             string tableName = "";
 
             //убираем лишние проблемы
@@ -280,6 +277,8 @@ namespace CodeAnalysis
             target = " ";
             regex = new Regex(pattern);
             sqlQuery = regex.Replace(sqlQuery, target);
+
+            deleteStruct.sqlQuery = "DELETE " + sqlQuery.Trim();
 
             //получаем имя таблицы
             pattern = @"(?ixn)^[ ]*[^ ]+";
@@ -298,19 +297,19 @@ namespace CodeAnalysis
                 sqlQuery = regex.Replace(sqlQuery, target);
                 constrLine = sqlQuery;
             }
-            CreateDelete(tableName, constrLine);
+            deleteStruct = CreateDelete(tableName, constrLine, deleteStruct);
+            return deleteStruct;
         }
 
-        void CreateDelete(string tableName, string constrLine)
+        SqlToEfStruct CreateDelete(string tableName, string constrLine, SqlToEfStruct deleteStruct)
         {
-            Console.WriteLine("EF6");
-            string EMBlock = "using (ApplicationContext db = new ApplicationContext())\n{\n\t";
+            string EFBlock = "using (ApplicationContext db = new ApplicationContext())\n{\n\t";
 
-            EMBlock += "db." + tableName + ".RemoveRange(db." + tableName;
+            EFBlock += "db." + tableName + ".RemoveRange(db." + tableName;
 
             if (constrLine.Length > 0)
             {
-                EMBlock += ".Where(x => ";
+                EFBlock += ".Where(x => ";
                 string[] constrns = constrLine.Split(new[] { " AND ", " OR " }, StringSplitOptions.None);
                 foreach (var i in constrns)
                 {
@@ -324,27 +323,29 @@ namespace CodeAnalysis
                 }
 
                 constrLine = constrLine.Replace("=", "==").Replace("AND", "&&").Replace("OR", "||");
-                EMBlock += constrLine + ")";
+                EFBlock += constrLine + ")";
             }
-            EMBlock += ");\n\tdb.SaveChanges();\n}";
-            Console.WriteLine(EMBlock);
-            Console.WriteLine("----------------------");
+            EFBlock += ");\n\tdb.SaveChanges();\n}";
+            deleteStruct.EfBlock = EFBlock;
+            return deleteStruct;
         }
 
-        public void SearchSelect(string code)
+        public List<SqlToEfStruct> SearchSelect(string code)
         {
             string pattern = @"[^;]+(?ixn)""SELECT[^;]+";
             Regex regex = new Regex(pattern);
+            List<SqlToEfStruct> arr = new List<SqlToEfStruct>();
             foreach (Match match in Regex.Matches(code, pattern))
             {
-                SplitSelect(match.Value);
+                arr.Add(SplitSelect(match.Value));
             }
+            return arr;
         }
 
-        public void SplitSelect(string sqlQuery)
+        public SqlToEfStruct SplitSelect(string sqlQuery)
         {
-            Console.WriteLine("sql запрос");
-            Console.WriteLine(sqlQuery);
+            SqlToEfStruct selectStruct = new SqlToEfStruct();
+            selectStruct.replaceLine = sqlQuery;
             bool whereBool = false;
             bool orderByBool = false;
             if (sqlQuery.ToUpper().Contains(" WHERE "))
@@ -366,6 +367,8 @@ namespace CodeAnalysis
             target = " ";
             regex = new Regex(pattern);
             sqlQuery = regex.Replace(sqlQuery, target);
+
+            selectStruct.sqlQuery = "SELECT " + sqlQuery.Trim();
 
             //получаем название столбцов
             pattern = @"^.*(?ixn)FROM";
@@ -428,12 +431,12 @@ namespace CodeAnalysis
                 constrainsLine = regex.Replace(constrainsLine, target);
             }
             string orderByLine = sqlQuery.Trim();
-            CreateSelect(columnsLine, tablesLine, constrainsLine, orderByLine);
+            selectStruct = CreateSelect(columnsLine, tablesLine, constrainsLine, orderByLine, selectStruct);
+            return selectStruct;
         }
-        void CreateSelect(string columnsLines, string tablesLines, string constrainsLine, string orderByLine)
+        SqlToEfStruct CreateSelect(string columnsLines, string tablesLines, string constrainsLine, string orderByLine, SqlToEfStruct selectStruct)
         {
-            Console.WriteLine("EF6");
-            string EMBlock = "using (ApplicationContext db = new ApplicationContext())\n{\n\tvar result = ";
+            string EFBlock = "using (ApplicationContext db = new ApplicationContext())\n{\n\tvar result = ";
 
             //колонки
             string columnCode = "select new\n\t{\n\t\t";
@@ -563,9 +566,9 @@ namespace CodeAnalysis
                     fromCode += " join " + psevd + " in db." + tableName + " on " + tableInfo[i].Replace("=", "equals");
                 }
             }
-            EMBlock += fromCode + "\n\t" + whereCode + "\n\t" + orderByCode + "\n\t" + columnCode + ";\n}";
-            Console.WriteLine(EMBlock);
-            Console.WriteLine("----------------------");
+            EFBlock += fromCode + "\n\t" + whereCode + "\n\t" + orderByCode + "\n\t" + columnCode + ";\n}";            
+            selectStruct.EfBlock = EFBlock;
+            return selectStruct;
         }
     }
 }

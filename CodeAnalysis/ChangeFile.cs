@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 
 namespace CodeAnalysis
 {
-    class ChangeFile
+    public class ChangeFile
     {
         string path;
         string type;
@@ -16,21 +16,22 @@ namespace CodeAnalysis
             path = _path;
             type = _type;
         }
-
-        public void StartChange()
+        public Dictionary<MethodStruct, List<SqlToEfStruct>> StartChange()
         {
             SplitTree splitTree = new SplitTree(type, path);
             splitTree.StartSplit();
+            Dictionary<MethodStruct, List<SqlToEfStruct>> fileReplace = new Dictionary<MethodStruct, List<SqlToEfStruct>>();
             foreach (var method in splitTree.methodStructs)
-            {
-                Console.WriteLine(method.solution.FilePath + " " + method.project.Name + " " + method.document.Name + " " + method.method.Identifier);
+            {                
                 string pattern = @"(^[^{]+{)|(}$)";
                 string target = " ";
                 Regex regex = new Regex(pattern);
                 string result = regex.Replace(method.method.ToString(), target);
                 SearchSQL a = new SearchSQL();
-                a.Search(result);
+                List<SqlToEfStruct> arr = a.Search(result);
+                fileReplace.Add(method, arr);
             }
+            return fileReplace;
         }
     }
 }
